@@ -1,8 +1,4 @@
-examplepackage.torch
+rdl
 ====================
 
-A hello-world for torch packages
-
-You can install the package by opening a terminal, changing directory into the folder and typing:
-
-luarocks make
+A Torch package for Representational Distance Learning (RDL)
