@@ -193,7 +193,7 @@ function train(dataset)
    print("<trainer> online epoch # " .. epoch .. ' [batchSize = ' .. opt.batchSize .. ']')
    for t = 1,dataset:size(),opt.batchSize do
              
-      if(batchCounter%100 == 0) then 
+      if(batchCounter%50 == 0) then 
         local rdm = rdl.createSSRDM(model,trainRDL,{3,6,10})
         torch.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain .. '_' .. batchCounter .. '.t7',rdm)
         fbmat.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain .. '_' .. batchCounter .. '.mat',rdm)
