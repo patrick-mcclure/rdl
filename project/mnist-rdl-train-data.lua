@@ -1,14 +1,13 @@
 require 'torch'
 require 'nn'
 require 'optim'
-require 'image'
 require 'dataset-mnist'
 require 'pl'
 require 'paths'
 
 classes = {'1','2','3','4','5','6','7','8','9','10'}
 
-n = 5
+n = 10
 
 count = torch.Tensor(#classes)
 
@@ -30,7 +29,7 @@ while flg do
     trainIndex[t][count[t]] = r[j]
     j = j + 1
   end
-  if count:sum() == #classes * 5 then flg = false end
+  if count:sum() == #classes * n then flg = false end
   
   i = i +1
 end

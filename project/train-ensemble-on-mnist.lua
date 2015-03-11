@@ -50,6 +50,8 @@ opt.full = true
 -- fix seed
 torch.manualSeed(1)
 
+nRDLTrain = 10
+
 -- threads
 torch.setnumthreads(opt.threads)
 print('<torch> set nb of threads to ' .. torch.getnumthreads())
@@ -162,7 +164,7 @@ testData:normalizeGlobal(mean, std)
 -- this matrix records the current confusion across classes
 confusion = optim.ConfusionMatrix(classes)
 
-trainRDLIndex = torch.load('trainRDLIndex_5.t7')
+trainRDLIndex = torch.load('trainRDLIndex_' .. nRDLTrain .. '.t7')
 
 trainRDL = torch.Tensor(trainRDLIndex:size(1),1,geometry[1],geometry[2])
 
@@ -191,10 +193,10 @@ function train(dataset)
    print("<trainer> online epoch # " .. epoch .. ' [batchSize = ' .. opt.batchSize .. ']')
    for t = 1,dataset:size(),opt.batchSize do
              
-      if(batchCounter%100 == 0) then 
+      if(math.log10(batchCounter*10) == math.ceil(math.log10(batchCounter*10))) then 
         local rdm = rdl.createSSRDM(model,trainRDL,{3,6,10})
-        torch.save('rdms/rdm_' .. opt.model_num .. '_' .. batchCounter .. '.t7',rdm)
-        fbmat.save('rdms/rdm_' .. opt.model_num .. '_' .. batchCounter .. '.mat',rdm)
+        torch.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain .. '_' .. batchCounter .. '.t7',rdm)
+        fbmat.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain .. '_' .. batchCounter .. '.mat',rdm)
       end
       
       batchCounter = batchCounter + 1
@@ -386,8 +388,8 @@ while epoch < 2 do
 end
 
 local rdm = rdl.createSSRDM(model,trainRDL,{3,6,10})
-torch.save('rdms/rdm_' .. opt.model_num .. '_final.t7',rdm)
-fbmat.save('rdms/rdm_' .. opt.model_num .. '_final.t7',rdm)
+torch.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain .. '_' .. '_final.t7',rdm)
+fbmat.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain .. '_' ..  '_final.mat',rdm)
 
 torch.save('model_' .. opt.model_num .. '.t7', model)
 local weights_end, gradient_end = model:getParameters()
