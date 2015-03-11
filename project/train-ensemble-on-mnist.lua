@@ -18,10 +18,12 @@
 require 'torch'
 require 'nn'
 require 'optim'
-require 'image'
+--require 'image'
 require 'dataset-mnist'
 require 'pl'
 require 'paths'
+require 'rdl'
+require 'math'
 
 ----------------------------------------------------------------------
 -- parse command-line options
@@ -34,7 +36,7 @@ local opt = lapp[[
    -p,--plot                                plot while training
    -o,--optimization  (default "SGD")       optimization: SGD | LBFGS 
    -r,--learningRate  (default 0.05)        learning rate, for SGD only
-   -b,--batchSize     (default 20)          batch size
+   -b,--batchSize     (default 100)          batch size
    -m,--momentum      (default 0.75)           momentum, for SGD only
    -i,--maxIter       (default 3)           maximum nb of iterations per batch, for LBFGS
    --coefL1           (default 0)           L1 penalty on the weights
@@ -57,6 +59,8 @@ if opt.optimization == 'SGD' then
    torch.setdefaulttensortype('torch.FloatTensor')
 end
 
+-- initialize fbmattorch instance
+local fbmat = require 'fb.mattorch'
 ----------------------------------------------------------------------
 -- define model to train
 -- on the 10-class classification problem
@@ -158,6 +162,15 @@ testData:normalizeGlobal(mean, std)
 -- this matrix records the current confusion across classes
 confusion = optim.ConfusionMatrix(classes)
 
+trainRDLIndex = torch.load('trainRDLIndex_5.t7')
+
+trainRDL = torch.Tensor(trainRDLIndex:size(1),1,geometry[1],geometry[2])
+
+for i = 1,trainRDLIndex:size(1) do
+  local sample = trainData[trainRDLIndex[i]]
+  trainRDL[i] = sample[1]:clone()
+end
+
 -- training function
 function train(dataset)
   -- epoch tracker
@@ -170,10 +183,22 @@ function train(dataset)
   model:training()
 
   local randIndex = torch.randperm(dataset:size())
+  
+  local batchCounter = 0
+  
    -- do one epoch
    print('<trainer> on training set:')
    print("<trainer> online epoch # " .. epoch .. ' [batchSize = ' .. opt.batchSize .. ']')
    for t = 1,dataset:size(),opt.batchSize do
+             
+      if(batchCounter%100 == 0) then 
+        local rdm = rdl.createSSRDM(model,trainRDL,{3,6,10})
+        torch.save('rdms/rdm_' .. opt.model_num .. '_' .. batchCounter .. '.t7',rdm)
+        fbmat.save('rdms/rdm_' .. opt.model_num .. '_' .. batchCounter .. '.mat',rdm)
+      end
+      
+      batchCounter = batchCounter + 1
+      
       -- create mini batch
       local inputs = torch.Tensor(opt.batchSize,1,geometry[1],geometry[2])
       local targets = torch.Tensor(opt.batchSize)
@@ -351,7 +376,6 @@ while epoch < 2 do
    -- train/test
    train(trainData)
    test(testData)
-
    -- plot errors
    if opt.plot then
       trainLogger:style{['% mean class accuracy (train set)'] = '-'}
@@ -360,6 +384,10 @@ while epoch < 2 do
       testLogger:plot()
    end
 end
+
+local rdm = rdl.createSSRDM(model,trainRDL,{3,6,10})
+torch.save('rdms/rdm_' .. opt.model_num .. '_final.t7',rdm)
+fbmat.save('rdms/rdm_' .. opt.model_num .. '_final.t7',rdm)
 
 torch.save('model_' .. opt.model_num .. '.t7', model)
 local weights_end, gradient_end = model:getParameters()
