@@ -43,7 +43,7 @@ local opt = lapp[[
 ]]
 
 -- fix seed
-torch.manualSeed(1)
+torch.seed()
 
 -- threads
 torch.setnumthreads(opt.threads)
