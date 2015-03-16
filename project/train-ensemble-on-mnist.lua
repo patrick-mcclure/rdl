@@ -194,9 +194,9 @@ function train(dataset)
    for t = 1,dataset:size(),opt.batchSize do
              
       if(batchCounter%50 == 0) then 
-        local rdm = rdl.createCosRDM(model,trainRDL,{3,6,10})
-        torch.save('rdms/cos/rdm_' .. opt.model_num .. '_' .. nRDLTrain .. '_' .. batchCounter .. '.t7',rdm)
-        fbmat.save('rdms/cos/rdm_' .. opt.model_num .. '_' .. nRDLTrain .. '_' .. batchCounter .. '.mat',rdm)
+        local rdm = rdl.createSSRDM(model,trainRDL,{3,6,10})
+        torch.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain .. '_' .. batchCounter .. '.t7',rdm)
+        fbmat.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain .. '_' .. batchCounter .. '.mat',rdm)
       end
       
       batchCounter = batchCounter + 1
@@ -388,8 +388,8 @@ while epoch < 2 do
 end
 
 local rdm = rdl.createSSRDM(model,trainRDL,{3,6,10})
-torch.save('rdms/cos/rdm_' .. opt.model_num .. '_' .. nRDLTrain  .. '_final.t7',rdm)
-fbmat.save('rdms/cos/rdm_' .. opt.model_num .. '_' .. nRDLTrain  ..  '_final.mat',rdm)
+torch.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain  .. '_final.t7',rdm)
+fbmat.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain  ..  '_final.mat',rdm)
 
 torch.save('model_' .. opt.model_num .. '.t7', model)
 local weights_end, gradient_end = model:getParameters()

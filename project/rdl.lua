@@ -89,9 +89,26 @@ local index = 0
         local rep_j_k = model.modules[k].output:clone() -- :view(model.modules[k].output:nElement())
         
         -- update rdm using the cosine distance
-        rdm[l][index] = cosDist:forward({torch.reshape(rep_i_k,rep_i_k:nElement()),torch.reshape(rep_j_k,rep_j_k:nElement())})
+        rdm[l][index] = 1 + cosDist:forward({torch.reshape(rep_i_k,rep_i_k:nElement()),torch.reshape(rep_j_k,rep_j_k:nElement())})
     end
     end
     return rdm
 end
+end
+
+function rdl.getExemplarPairs(indicies)
+  
+  local exemplarPairs = torch.Tensor(indicies:size(1)*(indicies:size(1)-1)/2,2)
+  
+  local index = 0
+  
+  for i = 1,inputs:size(1) do
+    for j = i+1, inputs:size(1) do
+      index = index + 1
+      exemplarPairs[index][1] = indicies[i]
+      exemplarPairs[index][2] = indicies[j]
+    end
+  end
+  
+  return exemplarPairs
 end
