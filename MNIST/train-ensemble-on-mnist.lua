@@ -186,20 +186,10 @@ function train(dataset)
 
   local randIndex = torch.randperm(dataset:size())
   
-  local batchCounter = 0
-  
    -- do one epoch
    print('<trainer> on training set:')
    print("<trainer> online epoch # " .. epoch .. ' [batchSize = ' .. opt.batchSize .. ']')
    for t = 1,dataset:size(),opt.batchSize do
-             
-      if(batchCounter%200 == 0) then 
-        local rdm = rdl.createSSRDM(model,trainRDL,{3,6,10})
-        torch.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain .. '_' .. batchCounter .. '.t7',rdm)
-        fbmat.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain .. '_' .. batchCounter .. '.mat',rdm)
-      end
-      
-      batchCounter = batchCounter + 1
       
       -- create mini batch
       local inputs = torch.Tensor(opt.batchSize,1,geometry[1],geometry[2])
@@ -373,11 +363,24 @@ end
 trainLogger = optim.Logger(paths.concat(opt.save, 'train'.. opt.model_num ..'.log'))
 testLogger = optim.Logger(paths.concat(opt.save, 'test'.. opt.model_num ..'.log'))
 
+-- initialize epoch counter
 epoch = 1
+
+-- calculate and save initial model rdm
+rdm = rdl.createSSRDM(model,trainRDL,{3,6,10})
+torch.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain .. '_' .. epoch-1 .. '.t7',rdm)
+fbmat.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain .. '_' .. epoch-1 .. '.mat',rdm)
+
 while epoch < 2 do
    -- train/test
    train(trainData)
    test(testData)
+   
+   -- calculate and save rdm
+   rdm = rdl.createSSRDM(model,trainRDL,{3,6,10})
+   torch.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain .. '_' .. epoch-1 .. '.t7',rdm)
+   fbmat.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain .. '_' .. epoch-1 .. '.mat',rdm)
+   
    -- plot errors
    if opt.plot then
       trainLogger:style{['% mean class accuracy (train set)'] = '-'}
@@ -387,10 +390,7 @@ while epoch < 2 do
    end
 end
 
-local rdm = rdl.createSSRDM(model,trainRDL,{3,6,10})
-torch.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain  .. '_final.t7',rdm)
-fbmat.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain  ..  '_final.mat',rdm)
-
+-- save model and parameters
 torch.save('models/model_' .. opt.model_num .. '.t7', model)
 local weights_end, gradient_end = model:getParameters()
 torch.save('vars/weights_' .. opt.model_num .. '.t7',weights_end)

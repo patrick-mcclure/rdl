@@ -156,7 +156,7 @@ local trainRDLIndex = torch.load('vars/trainRDLIndex_' .. nExemplars ..'.t7'):do
 local auxInputs = rdl.getExemplarPairs(trainRDLIndex)
 local auxIndecies = torch.randperm(auxInputs:size(1))
 local auxTargets = torch.load('rdms/rdm_ensemble' .. nExemplars .. '.t7')
-auxTargets:div(auxTargets:norm())
+auxTargets:div(auxTargets:max())
 
 ----------------------------------------------------------------------
 -- define training and testing functions
@@ -227,7 +227,7 @@ function train(dataset)
         -- calculate auxilary error
         local auxError1 = torch.Tensor(32, 9, 9):zero()
         local auxError2 = torch.Tensor(64, 2, 2):zero()
-        local alpha = 0.99
+        local alpha = 1
         local index = 0
         for i = t,math.min(t+auxBatchSize-1,auxIndecies:size(1)) do
         index = index + 1

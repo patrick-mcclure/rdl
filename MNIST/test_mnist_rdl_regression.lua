@@ -155,8 +155,8 @@ auxBatchSize = 50
 local nExemplars = 10
 local trainRDLIndex = torch.load('vars/trainRDLIndex_' .. nExemplars ..'.t7'):double()
 local auxInputs = rdl.getExemplarPairs(trainRDLIndex)
-local auxIndecies = torch.randperm(auxInputs:size(1))
 local auxTargets = torch.load('rdms/rdm_ensemble' .. nExemplars .. '.t7')
+auxTargets:div(auxTargets:norm())
 
 ----------------------------------------------------------------------
 -- define training and testing functions
@@ -233,10 +233,10 @@ function train(dataset)
         local auxTargets2 = torch.Tensor(auxBatchSize)
         local dist1 = torch.Tensor(auxBatchSize)
         local dist2 = torch.Tensor(auxBatchSize)
-        local beta1 = 0
-        local beta2 = 0
-        local alpha = 1
+        local alpha = 0.97
         local index = 0
+        
+        local auxIndecies = torch.randperm(auxInputs:size(1))
         
         for i = t,math.min(t+auxBatchSize-1,auxIndecies:size(1)) do
         index = index + 1
@@ -252,45 +252,65 @@ function train(dataset)
          	local input2 = dataset[imgIndex_2][1]:clone()
           
          	model:forward(input1)
-          local output11 = model.modules[1].output:clone()
-          local output12 = model.modules[2].output:clone()
+          output11 = model.modules[1].output:clone()
+          output12 = model.modules[2].output:clone()
           
           model:forward(input2)
-          local output21 = model.modules[1].output:clone()
-          local output22 = model.modules[2].output:clone()
+          output21 = model.modules[1].output:clone()
+          output22 = model.modules[2].output:clone()
           
           dist1[index] = auxCriterion:forward(output11,output21)
-          auxError1[index]:add((1-alpha),auxCriterion:backward(output11,output21))
+          auxError1[index]:add(auxCriterion:backward(output11,output21))
           
           dist2[index] = auxCriterion:forward(output12,output22)
-          auxError2[index]:add((1-alpha),auxCriterion:backward(output12,output22))
+          auxError2[index]:add(auxCriterion:backward(output12,output22))
         end
         
-        -- calculate beta
-        XXt = torch.dot(auxTargets1,auxTargets1)    
-        beta1 = torch.dot(auxTargets1,dist1)/XXt
+        -- calculate target scalings using linear regression
         
-        XXt = torch.dot(auxTargets2,auxTargets2)    
-        beta2 = torch.dot(auxTargets2,dist2)/XXt
+        local TTt1 = torch.dot(auxTargets1,auxTargets1)
+        local TtD1 = torch.dot(auxTargets1,dist1)
+        local beta1 = math.exp(math.log(TtD1) - math.log(TTt1))
+        
+        local TTt2 = torch.dot(auxTargets2,auxTargets2)
+        local TtD2 = torch.dot(auxTargets2,dist2)
+        local beta2 = math.exp(math.log(TtD2) - math.log(TTt2))
+
         
         -- scale target distance
-        auxTargets1:mul(beta1)
-        auxTargets2:mul(beta2)
+        local dif1 = torch.mul(auxTargets1,beta1)
+        local dif2 = torch.mul(auxTargets2, beta2)
         
-        dist1:add(-1,auxTargets1)
-        dist2:add(-1,auxTargets2)
+        dif1:add(-1,dist1)
+        dif2:add(-1,dist2)
+        
+        dif1:mul((1-alpha))
+        dif2:mul((1-alpha))
         
         -- calculate errors
+        local auxE1 = torch.Tensor(32,9,9)
+        auxE1:zero()
+        local auxE2 = torch.Tensor(64,2,2)
+        auxE2:zero()
         for i = 1,auxBatchSize do
-         auxError1[i]:mul(dist1[i])
-         auxError2[i]:mul(dist2[i])
+           if dif1[i] == -0 then
+             dif1[i] = 0
+           end
+           if dif2[i] == -0 then
+             dif2[i] = 0
+           end
+         auxE1:add(dif1[i],auxError1[i]:clone())
+         auxE2:add(dif2[i],auxError2[i]:clone())
         end
         
-        auxError1:div(inputs:size(1))
-        auxError2:div(inputs:size(1))
+        -- calculate gradient per main mini-batch input
+        auxE1:div(inputs:size(1))
+        auxE2:div(inputs:size(1))
         
-        local m2 = torch.mean(auxError2,1):view(64,2,2)
-        local m1 = torch.mean(auxError1,1):view(32,9,9)
+--        if auxE2:sum() ~= 0 then
+--          print('HELP!')
+--        end
+        
 
          -- evaluate function for complete mini batch
          local outputs = model:forward(inputs)
@@ -299,12 +319,11 @@ function train(dataset)
          -- estimate df/dW
          local df_do = criterion:backward(outputs, targets)
          --model:backward(inputs, df_do)
-         local outputs1 = stage[1].output
-         local outputs2 = stage[2].output
+         local outputs1 = stage[1].output:clone()
+         local outputs2 = stage[2].output:clone()
          local error2 = stage[3]:backward(outputs2, df_do)
-         error2:add(torch.Tensor(error2:size()):zero())
-         local error1 = stage[2]:backward(outputs1,error2)--:add(rep:forward(m2)))
-         stage[1]:backward(inputs,error1)--:add(rep:forward(m1)))
+         local error1 = stage[2]:backward(outputs1,torch.add(error2,rep:forward(auxE2)))
+         stage[1]:backward(inputs,torch.add(error1,rep:forward(auxE1)))
 
 --        local error2 = stage[3]:backward(outputs2, df_do)
 --        local error1 = stage[2]:backward(outputs1,error2)
