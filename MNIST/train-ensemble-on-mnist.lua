@@ -367,7 +367,7 @@ testLogger = optim.Logger(paths.concat(opt.save, 'test'.. opt.model_num ..'.log'
 epoch = 1
 
 -- calculate and save initial model rdm
-rdm = rdl.createSSRDM(model,trainRDL,{3,6,10})
+rdm = rdl.createSSRDM(model,trainRDL,{3,6,11})
 torch.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain .. '_' .. epoch-1 .. '.t7',rdm)
 fbmat.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain .. '_' .. epoch-1 .. '.mat',rdm)
 
@@ -377,7 +377,7 @@ while epoch < 2 do
    test(testData)
    
    -- calculate and save rdm
-   rdm = rdl.createSSRDM(model,trainRDL,{3,6,10})
+   rdm = rdl.createSSRDM(model,trainRDL,{3,6,11})
    torch.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain .. '_' .. epoch-1 .. '.t7',rdm)
    fbmat.save('rdms/rdm_' .. opt.model_num .. '_' .. nRDLTrain .. '_' .. epoch-1 .. '.mat',rdm)
    

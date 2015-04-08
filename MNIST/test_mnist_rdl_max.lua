@@ -231,9 +231,9 @@ function train(dataset)
         local auxError2 = torch.Tensor(auxBatchSize,64, 2, 2):zero()
         local auxTargets1 = torch.Tensor(auxBatchSize)
         local auxTargets2 = torch.Tensor(auxBatchSize)
-        local dist1 = torch.Tensor(auxBatchSize)
-        local dist2 = torch.Tensor(auxBatchSize)
-        local alpha = 0.97
+        local dist1 = torch.Tensor(auxBatchSize):zero()
+        local dist2 = torch.Tensor(auxBatchSize):zero()
+        local alpha = 1
         local index = 0
         
         local auxIndecies = torch.randperm(auxInputs:size(1))
